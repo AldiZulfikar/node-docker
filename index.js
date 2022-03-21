@@ -1,59 +1,73 @@
-const express = require("express")
-const { default: mongoose } = require("mongoose")
-const session = require("express-session")
-const redis = require("redis")
-let RedisStore = require("connect-redis")(session)
+const express = require("express");
+const mongoose = require("mongoose");
+const session = require("express-session");
+const redis = require("redis");
+const cors = require("cors");
+let RedisStore = require("connect-redis")(session);
 
-const { MONGO_USERNAME, MONGO_PASSWORD, MONGO_IP, MONGO_PORT, REDIS_URL, REDIS_PORT, SESSION_SECRET } = require("./config/config")
+const {
+  MONGO_USERNAME,
+  MONGO_PASSWORD,
+  MONGO_IP,
+  MONGO_PORT,
+  REDIS_URL,
+  SESSION_SECRET,
+  REDIS_PORT,
+} = require("./config/config");
 
 let redisClient = redis.createClient({
-    host: REDIS_URL,
-    port: REDIS_PORT,
-})
+  host: REDIS_URL,
+  port: REDIS_PORT,
+});
 
-const app = express()
+const postRouter = require("./routes/postRoutes");
+const userRouter = require("./routes/userRoutes");
 
-const postRouter = require("./routes/postRoutes")
-const userRouter = require("./routes/userRoute")
+const app = express();
 
-const mongourl = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_IP}:${MONGO_PORT}/?authSource=admin`
+const mongoURL = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_IP}:${MONGO_PORT}/?authSource=admin`;
 
 const connectWithRetry = () => {
-    mongoose
-    .connect(mongourl, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
+  mongoose
+    .connect(mongoURL, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     })
-    .then(() => console.log("successfully connect to DB"))
+    .then(() => console.log("succesfully connected to DB"))
     .catch((e) => {
-        console.log(e);
-        setTimeout(connectWithRetry, 5000);
-    })
-}
+      console.log(e);
+      setTimeout(connectWithRetry, 5000);
+    });
+};
 
-connectWithRetry()
+connectWithRetry();
 
-app.use(session({
-    store: new RedisStore({client: redisClient}),
+app.enable("trust proxy");
+app.use(cors({}));
+app.use(
+  session({
+    store: new RedisStore({ client: redisClient }),
     secret: SESSION_SECRET,
-    cookie:{
-        secure: false,
-        resave: false,
-        saveUninitialized: false,
-        httpOnly: true,
-        maxAge: 30000
-    }
-}))
+    cookie: {
+      secure: false,
+      resave: false,
+      saveUninitialized: false,
+      httpOnly: true,
+      maxAge: 30000,
+    },
+  })
+);
 
-app.use(express.json())
+app.use(express.json());
 
-app.get("/", (req, res) => {
-    res.send("<h1>Hi Aldi Zull was here!!!</h1>")
-})
+app.get("/api/v1", (req, res) => {
+  res.send("<h2>Hi  There</h2>");
+  console.log("yeah it ran");
+});
 
-app.use("/api/v1/posts", postRouter)
-app.use("/api/v1/post", userRouter)
+//localhost:3000/api/v1/post/
+app.use("/api/v1/posts", postRouter);
+app.use("/api/v1/users", userRouter);
+const port = process.env.PORT || 3000;
 
-const port = process.env.PORT || 3000
-
-app.listen(port, () => console.log(`listening on port ${port}`))
+app.listen(port, () => console.log(`listening on port ${port}`));

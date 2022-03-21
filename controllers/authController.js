@@ -1,28 +1,30 @@
 const User = require("../models/userModel")
-const bcrypt = require("bcryptjs")
-const { status } = require("express/lib/response")
+
+const bcrypt = require("bcryptjs");
 
 exports.signUp = async (req, res) => {
-    const {username, password} = req.body
+    const { username, password } = req.body;
+  
     try {
-        const hashpassword = await bcrypt.hash(password, 12)
-        const newUser = await User.create({
-            username,
-            password :hashpassword,
-        })
-        req.session.user = newUser
-        req.status(201).json({
-            status: "success",
-            data:{
-                user: newUser,
-            }
-        })
+      const hashpassword = await bcrypt.hash(password, 12);
+      const newUser = await User.create({
+        username,
+        password: hashpassword,
+      });
+      req.session.user = newUser;
+      res.status(201).json({
+        status: "success",
+        data: {
+          user: newUser,
+        },
+      });
     } catch (e) {
-        res.status(400).json({
-            status: "fail",
-        })
+      res.status(400).json({
+        status: "fail",
+        message: e.message,
+      });
     }
-}
+  };
 
 exports.login = async (req, res) => {
     const {username, password} = req.body
